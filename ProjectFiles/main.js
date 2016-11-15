@@ -15,7 +15,7 @@ window.onload = function init()
 {
 	container = document.getElementById('container');
 	clock = new THREE.Clock();
-	renderer = new THREE.WebGLRenderer();
+	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio( window.devicePixelRatio );
 	//document.body.appendChild(renderer.domElement);
 	container.appendChild(renderer.domElement);
