@@ -7,7 +7,7 @@
 THREE.FirstPersonControls = function ( object, domElement ) {
 
 	this.object = object;
-	this.target = new THREE.Vector3( 0, 0, 0 );
+	this.target = new THREE.Vector3(0,0,0);
 
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
 
@@ -76,45 +76,11 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 	this.onMouseDown = function ( event ) {
 
-		if ( this.domElement !== document ) {
-
-			this.domElement.focus();
-
-		}
-
-		event.preventDefault();
-		event.stopPropagation();
-
-		if ( this.activeLook ) {
-
-			switch ( event.button ) {
-
-				case 0: this.moveForward = true; break;
-				case 2: this.moveBackward = true; break;
-
-			}
-
-		}
-
 		this.mouseDragOn = true;
 
 	};
 
 	this.onMouseUp = function ( event ) {
-
-		event.preventDefault();
-		event.stopPropagation();
-
-		if ( this.activeLook ) {
-
-			switch ( event.button ) {
-
-				case 0: this.moveForward = false; break;
-				case 2: this.moveBackward = false; break;
-
-			}
-
-		}
 
 		this.mouseDragOn = false;
 
@@ -186,6 +152,8 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 	this.update = function( delta ) {
 
+		console.log(this.target);
+
 		if ( this.enabled === false ) return;
 
 		if ( this.heightSpeed ) {
@@ -212,44 +180,49 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 		if ( this.moveUp ) this.object.translateY( actualMoveSpeed );
 		if ( this.moveDown ) this.object.translateY( - actualMoveSpeed );
 
-		var actualLookSpeed = delta * this.lookSpeed;
+		if(this.mouseDragOn)
+		{
 
-		if ( ! this.activeLook ) {
+			var actualLookSpeed = delta * this.lookSpeed;
 
-			actualLookSpeed = 0;
+			if ( ! this.activeLook ) {
 
-		}
+				actualLookSpeed = 0;
 
-		var verticalLookRatio = 1;
+			}
 
-		if ( this.constrainVertical ) {
+			var verticalLookRatio = 1;
 
-			verticalLookRatio = Math.PI / ( this.verticalMax - this.verticalMin );
+			if ( this.constrainVertical ) {
 
-		}
+				verticalLookRatio = Math.PI / ( this.verticalMax - this.verticalMin );
 
-		this.lon += this.mouseX * actualLookSpeed;
-		if ( this.lookVertical ) this.lat -= this.mouseY * actualLookSpeed * verticalLookRatio;
+			}
 
-		this.lat = Math.max( - 85, Math.min( 85, this.lat ) );
-		this.phi = THREE.Math.degToRad( 90 - this.lat );
+			this.lon += this.mouseX * actualLookSpeed;
+			if ( this.lookVertical ) this.lat -= this.mouseY * actualLookSpeed * verticalLookRatio;
 
-		this.theta = THREE.Math.degToRad( this.lon );
+			this.lat = Math.max( - 85, Math.min( 85, this.lat ) );
+			this.phi = THREE.Math.degToRad( 90 - this.lat );
 
-		if ( this.constrainVertical ) {
+			this.theta = THREE.Math.degToRad( this.lon );
 
-			this.phi = THREE.Math.mapLinear( this.phi, 0, Math.PI, this.verticalMin, this.verticalMax );
+			if ( this.constrainVertical ) {
 
-		}
+				this.phi = THREE.Math.mapLinear( this.phi, 0, Math.PI, this.verticalMin, this.verticalMax );
 
-		var targetPosition = this.target,
+			}
+
+			var targetPosition = this.target,
 			position = this.object.position;
+		
+			targetPosition.x = position.x + 100 * Math.sin( this.phi ) * Math.cos( this.theta );
+			targetPosition.y = position.y + 100 * Math.cos( this.phi );
+			targetPosition.z = position.z + 100 * Math.sin( this.phi ) * Math.sin( this.theta );			
+		
 
-		targetPosition.x = position.x + 100 * Math.sin( this.phi ) * Math.cos( this.theta );
-		targetPosition.y = position.y + 100 * Math.cos( this.phi );
-		targetPosition.z = position.z + 100 * Math.sin( this.phi ) * Math.sin( this.theta );
-
-		this.object.lookAt( targetPosition );
+			this.object.lookAt( targetPosition );
+		}
 
 	};
 
