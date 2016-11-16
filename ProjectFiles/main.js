@@ -1,7 +1,7 @@
 
 var gl;
 var points;
-var verticesPlane = [];
+var verticesPlane;
 var noise = [];
 var indices = [];
 
@@ -29,10 +29,13 @@ window.onload = function init()
 	controller.lookSpeed = .1;
 	camera.lookAt(new THREE.Vector3());
 	
-	var geometry = new THREE.BoxGeometry(5,5,5);
-	var material = new THREE.MeshBasicMaterial({color: 0x00ffff});
-	var cube = new THREE.Mesh(geometry,material);
+	var cGeometry = new THREE.BoxGeometry(5,5,5);
+	var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	cGeometry.computeVertexNormals();
+	var cube = new THREE.Mesh(cGeometry,cMaterial);
 	scene.add(cube);
+	
+	
 	
     var simplex = new SimplexNoise();
     //var canvas = document.getElementById( "gl-canvas" );
@@ -43,18 +46,22 @@ window.onload = function init()
    // gl.enable(gl.DEPTH_TEST);
 
     var size = 100;
-    var scale = 1;
+    var scale = 10;
     var noiseScale = 2;
     noiseScale /= size;
     var width = scale / (size-1);
-    
+    verticesPlane = new Float32Array(size*size*3);
     for(var i = 0; i < size; i++)
     {
         for(var j = 0; j< size; j++)
         {
-            verticesPlane[i+j*size] = new THREE.Vector3(i*width*2-1, j*width*2-1, 0);
-            
-            noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
+			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
+			
+            verticesPlane[(i+j*size)*3] = i*width*2-1;
+            verticesPlane[(i+j*size)*3+1] = noise[i+j*size]*2;
+			verticesPlane[(i+j*size)*3+2] = j*width*2-1;
+			
+           
             if(i> 0 && j> 0)
             {
                 indices.push(i-1 + (j-1) * size);
@@ -67,7 +74,22 @@ window.onload = function init()
             }
         }
     }
-
+	var geometry = new THREE.BufferGeometry();
+	geometry.addAttribute( 'position', new THREE.BufferAttribute(verticesPlane, 3 ) );
+	geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( indices ), 1 ) );
+	geometry.computeVertexNormals();
+	var material = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	var mesh = new THREE.Mesh( geometry, material );
+	
+	scene.add(mesh);
+	
+	
+	var ambientLight = new THREE.AmbientLight(0x222222);
+	scene.add(ambientLight);
+	var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+	directionalLight.position.set(10,10,10);
+	directionalLight.target.position.set(0, 0, 0);
+	scene.add(directionalLight);
     //
     //  Configure WebGL
     //
