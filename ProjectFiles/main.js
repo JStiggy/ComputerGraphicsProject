@@ -11,6 +11,7 @@ var scene;
 var camera;
 var controller;
 var clock;
+var stats;
 window.onload = function init()
 {
 	container = document.getElementById('container');
@@ -103,6 +104,8 @@ window.onload = function init()
 
     //gl.lineWidth(10);
 */
+	stats = new Stats();
+	container.appendChild(stats.domElement)
 	onWindowResize();
 	window.addEventListener( 'resize', onWindowResize, false );
     render();
@@ -117,6 +120,7 @@ var deltaTime;
 function update(){
 	deltaTime = clock.getDelta();
 	controller.update(deltaTime);
+	stats.update();
 }
 function render() {
     //gl.clear( gl.COLOR_BUFFER_BIT );
