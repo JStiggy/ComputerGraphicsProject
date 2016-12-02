@@ -152,8 +152,6 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 
 	this.update = function( delta ) {
 
-		console.log(this.target);
-
 		if ( this.enabled === false ) return;
 
 		if ( this.heightSpeed ) {
