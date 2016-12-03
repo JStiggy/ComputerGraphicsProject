@@ -75,15 +75,18 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 	};
 
 	this.onMouseDown = function ( event ) {
-
-		this.mouseDragOn = true;
+		if(event.button === 2)
+		{
+			this.mouseDragOn = true;
+		}
 
 	};
 
 	this.onMouseUp = function ( event ) {
-
-		this.mouseDragOn = false;
-
+		if(event.button === 2)
+		{
+			this.mouseDragOn = false;
+		}
 	};
 
 	this.onMouseMove = function ( event ) {
