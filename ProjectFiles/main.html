@@ -14,10 +14,14 @@ body{
 <script type="text/javascript" src="../ThreeJS/stats.min.js"></script>
 <script type="text/javascript" src="../ThreeJS/dat.gui.min.js"></script>
 <script type="text/javascript" src="../ThreeJS/FirstPersonControls.js"></script>
+<script type="text/javascript" src="phongVert.js"></script>
+<script type="text/javascript" src= "phongFrag.js"></script>
 <script type="text/javascript" src="main.js"></script>
 <script type="text/javascript" src="simplex.js"></script>
 
 <script id="vertex-shader" type="x-shader/x-vertex">
+uniform float min;
+uniform float max;
 attribute vec3 aPosition;
 attribute float aColor;
 varying float vColor;
@@ -26,7 +30,13 @@ main()
 {
 	//vColor = aColor;
     vColor = 1.0;
-	vec3 offset = vec3(0,0,0);
+	float distance = distance(cameraPosition , position);
+	float ratio = (distance - min) / (max - min);
+	ratio = clamp(ratio,0.0,1.0);
+	
+	vec3 offset = vec3(0,5.0,0);
+	offset = mix(offset,vec3(0,0,0),ratio);
+
 	vec4 mvPosition = modelViewMatrix * vec4( position + offset, 1.0 );
 	gl_Position = projectionMatrix * mvPosition;
 }

@@ -37,18 +37,35 @@ window.onload = function init()
 	var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
 	
 	var uniforms = {
-		
+		min: {value: 10},
+		max: {value: 20},
 	};
 	var attributes = {
 		
 	};
 	
-	mat = new THREE.ShaderMaterial({
+	/*mat = new THREE.ShaderMaterial({
 		uniforms: uniforms,
 		//attributes: attributes,
 		vertexShader: document.getElementById('vertex-shader').textContent,
 		fragmentShader: document.getElementById('fragment-shader').textContent
+	});*/
+	
+	uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
+	//uniforms.color = 0x00ffff;
+	//uniforms.min.value = 10;
+	//unforms.max.value = 20;
+	mat = new THREE.ShaderMaterial({
+		uniforms: uniforms,
+		//attributes: attributes,
+		vertexShader: phongVert,
+		fragmentShader: phongFrag,
+		uniforms: uniforms,
+		lights: true
 	});
+	mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
+	mat.needsUpdate = true;
+	
 	
 	cGeometry.computeVertexNormals();
 	var cube = new THREE.Mesh(cGeometry,mat);
@@ -66,6 +83,7 @@ window.onload = function init()
 
     var size = 100;
     var scale = 10;
+	var halfScale = -scale;
     var noiseScale = 2;
     noiseScale /= size;
     var width = scale / (size-1);
@@ -76,9 +94,9 @@ window.onload = function init()
         {
 			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
 			
-            verticesPlane[(i+j*size)*3] = i*width*2;
+            verticesPlane[(i+j*size)*3] = i*width*2 + halfScale ;
             verticesPlane[(i+j*size)*3+1] = noise[i+j*size]*2;
-			verticesPlane[(i+j*size)*3+2] = j*width*2;
+			verticesPlane[(i+j*size)*3+2] = j*width*2 + halfScale;
 			
            
             if(i> 0 && j> 0)
@@ -101,7 +119,7 @@ window.onload = function init()
 	
 	
 	
-	var mesh = new THREE.Mesh( geometry, material );
+	var mesh = new THREE.Mesh( geometry, mat );
 	
 	scene.add(mesh);
 	
