@@ -29,10 +29,25 @@ window.onload = function init()
 	controller.lookSpeed = .1;
 	camera.lookAt(new THREE.Vector3());
 	
-	var cGeometry = new THREE.BoxGeometry(5,5,5);
+	var cGeometry = new THREE.CubeGeometry(2,2,2);
 	var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	
+	var uniforms = {
+		
+	};
+	var attributes = {
+		
+	};
+	
+	var mat = new THREE.ShaderMaterial({
+		uniforms: uniforms,
+		//attributes: attributes,
+		vertexShader: document.getElementById('vertex-shader').textContent,
+		fragmentShader: document.getElementById('fragment-shader').textContent
+	});
+	
 	cGeometry.computeVertexNormals();
-	var cube = new THREE.Mesh(cGeometry,cMaterial);
+	var cube = new THREE.Mesh(cGeometry,mat);
 	scene.add(cube);
 	
 	
@@ -57,9 +72,9 @@ window.onload = function init()
         {
 			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
 			
-            verticesPlane[(i+j*size)*3] = i*width*2-1;
+            verticesPlane[(i+j*size)*3] = i*width*2;
             verticesPlane[(i+j*size)*3+1] = noise[i+j*size]*2;
-			verticesPlane[(i+j*size)*3+2] = j*width*2-1;
+			verticesPlane[(i+j*size)*3+2] = j*width*2;
 			
            
             if(i> 0 && j> 0)
@@ -78,7 +93,10 @@ window.onload = function init()
 	geometry.addAttribute( 'position', new THREE.BufferAttribute(verticesPlane, 3 ) );
 	geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( indices ), 1 ) );
 	geometry.computeVertexNormals();
-	var material = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	var material = new THREE.MeshPhongMaterial({color: 0x00ffff, wireframe: true});
+	
+	
+	
 	var mesh = new THREE.Mesh( geometry, material );
 	
 	scene.add(mesh);
