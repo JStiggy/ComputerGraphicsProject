@@ -12,6 +12,10 @@ var camera;
 var controller;
 var clock;
 var stats;
+var gui;
+var params;
+var mat;
+
 window.onload = function init()
 {
 	container = document.getElementById('container');
@@ -39,7 +43,7 @@ window.onload = function init()
 		
 	};
 	
-	var mat = new THREE.ShaderMaterial({
+	mat = new THREE.ShaderMaterial({
 		uniforms: uniforms,
 		//attributes: attributes,
 		vertexShader: document.getElementById('vertex-shader').textContent,
@@ -145,6 +149,16 @@ window.onload = function init()
     //gl.lineWidth(10);
 */
 	stats = new Stats();
+	
+	gui = new dat.GUI();
+	params = {
+		Wireframe: false
+	};
+	var c1 = gui.add(params,"Wireframe");
+	c1.onChange(function(v){
+		mat.wireframe = v;
+	});
+	
 	container.appendChild(stats.domElement)
 	onWindowResize();
 	window.addEventListener( 'resize', onWindowResize, false );
