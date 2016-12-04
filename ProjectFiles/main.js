@@ -52,9 +52,8 @@ window.onload = function init()
 	});*/
 	
 	uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
-	//uniforms.color = 0x00ffff;
-	//uniforms.min.value = 10;
-	//unforms.max.value = 20;
+	
+	
 	mat = new THREE.ShaderMaterial({
 		uniforms: uniforms,
 		//attributes: attributes,
@@ -64,6 +63,8 @@ window.onload = function init()
 		lights: true
 	});
 	mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
+	mat.uniforms.min = {value: 10};
+	mat.uniforms.max = {value: 20};
 	mat.needsUpdate = true;
 	
 	

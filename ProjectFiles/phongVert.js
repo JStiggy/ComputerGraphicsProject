@@ -1,5 +1,7 @@
 var phongVert = `
 #define PHONG 
+  uniform float min;
+  uniform float max;
   varying vec3 vViewPosition; 
   #ifndef FLAT_SHADED 
    
@@ -51,7 +53,7 @@ var phongVert = `
   #include <logdepthbuf_vertex> 
    
   #include <clipping_planes_vertex> 
-   
+
   vViewPosition = - mvPosition.xyz; 
    
   #include <worldpos_vertex> 
@@ -59,4 +61,15 @@ var phongVert = `
   #include <envmap_vertex> 
    
   #include <shadowmap_vertex> 
+
+  float distance = distance(cameraPosition , position);
+  float ratio = (distance - min) / (max - min);
+  ratio = clamp(ratio,0.0,1.0);
+  
+  vec3 offset = vec3(0,5.0,0);
+  offset = mix(offset,vec3(0,0,0),ratio);
+
+  mvPosition = modelViewMatrix * vec4( position + offset, 1.0 );
+  gl_Position = projectionMatrix * mvPosition;
+
   } `;
