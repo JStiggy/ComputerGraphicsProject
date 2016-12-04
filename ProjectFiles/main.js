@@ -1,10 +1,7 @@
 
 var gl;
 var points;
-var verticesPlane;
-var noise = [];
-var indices = [];
-
+var simplex = new SimplexNoise();
 var container;
 var renderer;
 var scene;
@@ -74,7 +71,7 @@ window.onload = function init()
 	
 	
 	
-    var simplex = new SimplexNoise();
+   
     //var canvas = document.getElementById( "gl-canvas" );
     
    // gl = WebGLUtils.setupWebGL( canvas );
@@ -82,47 +79,21 @@ window.onload = function init()
 
    // gl.enable(gl.DEPTH_TEST);
 
-    var size = 100;
-    var scale = 10;
-	var halfScale = -scale;
-    var noiseScale = 2;
-    noiseScale /= size;
-    var width = scale / (size-1);
-    verticesPlane = new Float32Array(size*size*3);
-    for(var i = 0; i < size; i++)
-    {
-        for(var j = 0; j< size; j++)
-        {
-			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
-			
-            verticesPlane[(i+j*size)*3] = i*width*2 + halfScale ;
-            verticesPlane[(i+j*size)*3+1] = noise[i+j*size]*2;
-			verticesPlane[(i+j*size)*3+2] = j*width*2 + halfScale;
-			
-           
-            if(i> 0 && j> 0)
-            {
-                indices.push(i-1 + (j-1) * size);
-                indices.push(i-1 + j* size);
-                indices.push(i + j* size);
-
-                indices.push(i + j* size);
-                indices.push(i + (j-1) * size);
-                indices.push(i - 1 + (j-1) * size);      
-            }
-        }
-    }
-	var geometry = new THREE.BufferGeometry();
-	geometry.addAttribute( 'position', new THREE.BufferAttribute(verticesPlane, 3 ) );
-	geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( indices ), 1 ) );
-	geometry.computeVertexNormals();
-	var material = new THREE.MeshPhongMaterial({color: 0x00ffff, wireframe: true});
+    var 
+	var highRes = buildMesh(1);
+	var lowRes = buildMesh(4);
+	
+	var offsets = highRes.geometry.attributes.aOffset.array;
 	
 	
 	
-	var mesh = new THREE.Mesh( geometry, mat );
 	
-	scene.add(mesh);
+	//Send updated offset attributes
+	var offsets = highRes.geometry.attributes.aOffset.needsUpdate = true;
+	
+	scene.add(highRes);
+	
+	
 	
 	
 	var ambientLight = new THREE.AmbientLight(0x222222);
@@ -183,6 +154,55 @@ window.onload = function init()
 	window.addEventListener( 'resize', onWindowResize, false );
     render();
 };
+function buildMesh(lod){
+	var size = 128/lod;
+    var scale = 10;
+	var halfScale = -scale;
+    var noiseScale = 3;
+    noiseScale /= size;
+    var width = scale / (size-1);
+    var verticesPlane = new Float32Array(size*size*3);
+	var offsetBuffer = new Float32Array(size*size*3);
+	var noise = [];
+	var indices = [];
+    for(var i = 0; i < size; i++)
+    {
+        for(var j = 0; j< size; j++)
+        {
+			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
+			var index = (i+j*size)*3;
+			//Verts
+            verticesPlane[index] = i*width*2 + halfScale ;
+            verticesPlane[index+1] = noise[i+j*size]*2;
+			verticesPlane[index+2] = j*width*2 + halfScale;
+			//Offsets
+			offsetBuffer[index] = 0;
+			offsetBuffer[index+1] = 0;
+			offsetBuffer[index+2] = 0;
+			
+            
+		    
+            if(i> 0 && j> 0)
+            {
+                indices.push(i-1 + (j-1) * size);
+                indices.push(i-1 + j* size);
+                indices.push(i + j* size);
+
+                indices.push(i + j* size);
+                indices.push(i + (j-1) * size);
+                indices.push(i - 1 + (j-1) * size);      
+            }
+        }
+    }
+	var geometry = new THREE.BufferGeometry();
+	geometry.addAttribute( 'position', new THREE.BufferAttribute(verticesPlane, 3 ) );
+	geometry.addAttribute( 'aOffset', new THREE.BufferAttribute(offsetBuffer, 3 ) );
+	geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( indices ), 1 ) );
+	geometry.computeVertexNormals();
+	var material = new THREE.MeshPhongMaterial({color: 0x00ffff, wireframe: true});
+	var mesh = new THREE.Mesh( geometry, mat );
+	return mesh;
+}
 function onWindowResize( event ) {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	camera.aspect = window.innerWidth / window.innerHeight;

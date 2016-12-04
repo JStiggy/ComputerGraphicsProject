@@ -2,6 +2,7 @@ var phongVert = `
 #define PHONG 
   uniform float min;
   uniform float max;
+  attribute vec3 aOffset;
   varying vec3 vViewPosition; 
   #ifndef FLAT_SHADED 
    
@@ -66,8 +67,7 @@ var phongVert = `
   float ratio = (distance - min) / (max - min);
   ratio = clamp(ratio,0.0,1.0);
   
-  vec3 offset = vec3(0,5.0,0);
-  offset = mix(offset,vec3(0,0,0),ratio);
+  vec3 offset = mix(aOffset,vec3(0,0,0),ratio);
 
   mvPosition = modelViewMatrix * vec4( position + offset, 1.0 );
   gl_Position = projectionMatrix * mvPosition;
