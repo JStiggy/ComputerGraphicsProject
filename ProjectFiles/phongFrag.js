@@ -5,6 +5,7 @@
   uniform vec3 specular;
   uniform float shininess;
   uniform float opacity;
+  varying float height;
   #include <common>
   #include <packing>
   #include <color_pars_fragment>
@@ -66,7 +67,8 @@
   #include <envmap_fragment> 
    
   gl_FragColor = vec4( outgoingLight, diffuseColor.a ); 
-   
+  gl_FragColor = vec4(height/5.0, height/5.0, height/5.0,1.0);
+  
   #include <premultiplied_alpha_fragment> 
    
   #include <tonemapping_fragment> 

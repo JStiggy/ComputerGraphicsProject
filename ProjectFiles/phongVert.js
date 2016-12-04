@@ -3,7 +3,8 @@ var phongVert = `
   uniform float min;
   uniform float max;
   attribute vec3 aOffset;
-  varying vec3 vViewPosition; 
+  varying vec3 vViewPosition;
+  varying float height;
   #ifndef FLAT_SHADED 
    
   varying vec3 vNormal; 
@@ -71,5 +72,5 @@ var phongVert = `
 
   mvPosition = modelViewMatrix * vec4( position + offset, 1.0 );
   gl_Position = projectionMatrix * mvPosition;
-
+  height = position.y;
   } `;

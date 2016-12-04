@@ -1,4 +1,4 @@
-
+var highRes;
 var gl;
 var points;
 var simplex = new SimplexNoise();
@@ -30,23 +30,8 @@ window.onload = function init()
 	controller.lookSpeed = .1;
 	camera.lookAt(new THREE.Vector3());
 	
-	var cGeometry = new THREE.CubeGeometry(2,2,2);
-	var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
 	
-	var uniforms = {
-		min: {value: 10},
-		max: {value: 20},
-	};
-	var attributes = {
-		
-	};
 	
-	/*mat = new THREE.ShaderMaterial({
-		uniforms: uniforms,
-		//attributes: attributes,
-		vertexShader: document.getElementById('vertex-shader').textContent,
-		fragmentShader: document.getElementById('fragment-shader').textContent
-	});*/
 	
 	uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
 	
@@ -60,38 +45,73 @@ window.onload = function init()
 		lights: true
 	});
 	mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
-	mat.uniforms.min = {value: 10};
-	mat.uniforms.max = {value: 20};
+	mat.uniforms.min = {value: 0};
+	mat.uniforms.max = {value: 0};
 	mat.needsUpdate = true;
 	
-	
-	cGeometry.computeVertexNormals();
-	var cube = new THREE.Mesh(cGeometry,mat);
-	scene.add(cube);
-	
-	
-	
-   
-    //var canvas = document.getElementById( "gl-canvas" );
-    
-   // gl = WebGLUtils.setupWebGL( canvas );
-   // if ( !gl ) { alert( "WebGL isn't available" ); }
+	//Test cube
+	//var cGeometry = new THREE.CubeGeometry(2,2,2);
+	//var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	//cGeometry.computeVertexNormals();
+	//var cube = new THREE.Mesh(cGeometry,cMaterial);
+	//scene.add(cube);
 
-   // gl.enable(gl.DEPTH_TEST);
-
-    var 
-	var highRes = buildMesh(1);
-	var lowRes = buildMesh(4);
+    var size = 64;
+	var lodScale = 8;
+	var lowResSize = size/lodScale;
+	highRes = buildMesh(size,1);
+	var lowRes = buildMesh(size,lodScale);
 	
 	var offsets = highRes.geometry.attributes.aOffset.array;
-	
+	var positions = highRes.geometry.attributes.position.array;
+	/*var normals = highRes.geometry.attributes.normal.array;
+	var lowNormals = lowRes.geometry.attributes.normal.array;
+	for(var i = 0; i < lowResSize; i++){
+		for(var j = 0; j < lowResSize; j++){
+			var index = (i*lodScale+j*size*lodScale)*3;
+			normals[index] = lowNormals[i*3];
+			normals[index+1] = lowNormals[i*3+1];
+			normals[index+2] = lowNormals[i*3+2];
+		}
+	}*/
+	var sizeLimit = size;
+	for(var i = 0; i < sizeLimit; i++){
+		for(var j = 0; j < sizeLimit; j++){
+			if(i%lodScale != 0 || j%lodScale != 0){
+				index = (i+j*size)*3+1;
+				var partX = i / lodScale;
+				var partY = j / lodScale;
+				var x = partX % 1;
+				var y = partY % 1;
+				var xTile = Math.floor(partX)*lodScale;
+				var yTile = Math.floor(partY)*lodScale;
+				xTile = Math.min(xTile,size-lodScale-1);
+				yTile = Math.min(yTile,size-lodScale-1);
+				var topLeftIndex= xTile+yTile*size;
+				//Top left, topRight, bottomLeft, bottomRight, x, y
+				var interp = bilinearInterp(positions[topLeftIndex*3+1],positions[(topLeftIndex+lodScale)*3+1],positions[(topLeftIndex+size*lodScale)*3+1],positions[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
+				offsets[index] = -(interp - positions[index]);
+				positions[index] = interp;
+				//Normals
+				/*normals[index-1] = bilinearInterp(normals[topLeftIndex*3-1],normals[(topLeftIndex+lodScale)*3-1],normals[(topLeftIndex+size*lodScale)*3-1],normals[(topLeftIndex+size*lodScale+lodScale)*3-1],x,y);
+				normals[index] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3],normals[(topLeftIndex+size*lodScale)*3],normals[(topLeftIndex+size*lodScale+lodScale)*3],x,y);
+				normals[index+1] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3+1],normals[(topLeftIndex+size*lodScale)*3+1],normals[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
+				*/
+				
+				
+			}
+		}
+	}
 	
 	
 	
 	//Send updated offset attributes
-	var offsets = highRes.geometry.attributes.aOffset.needsUpdate = true;
-	
+	highRes.geometry.attributes.aOffset.needsUpdate = true;
+	highRes.geometry.attributes.position.needsUpdate = true;
+	//highRes.geometry.attributes.normal.needsUpdate = true;
 	scene.add(highRes);
+	scene.add(lowRes);
+	
 	
 	
 	
@@ -102,49 +122,14 @@ window.onload = function init()
 	directionalLight.position.set(10,10,10);
 	directionalLight.target.position.set(0, 0, 0);
 	scene.add(directionalLight);
-    //
-    //  Configure WebGL
-    //
-    //gl.viewport( 0, 0, canvas.width, canvas.height );
-   // gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
 
-    //  Load shaders and initialize attribute buffers
-
-    //var program = initShaders( gl, "vertex-shader", "fragment-shader" );
-   // gl.useProgram( program );
-    
-    // Load the data into the GPU
-/*
-    var iB = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iB);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW)
-
-    var cBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(noise), gl.STATIC_DRAW);
-    
-    var aColor = gl.getAttribLocation( program, "aColor");
-    gl.vertexAttribPointer(aColor, 1, gl.FLOAT, false, 0 ,0);
-    gl.enableVertexAttribArray( aColor);
-
-    var bufferId = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, bufferId );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(verticesPlane), gl.STATIC_DRAW );
-    // Associate out shader variables with our data buffer
-    
-    var vPosition = gl.getAttribLocation( program, "vPosition" );
-    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vPosition );
-
-    //gl.lineWidth(10);
-*/
 	stats = new Stats();
-	
 	gui = new dat.GUI();
 	params = {
-		Wireframe: false
+		Wireframe: true
 	};
 	var c1 = gui.add(params,"Wireframe");
+	mat.wireframe = true;
 	c1.onChange(function(v){
 		mat.wireframe = v;
 	});
@@ -154,11 +139,19 @@ window.onload = function init()
 	window.addEventListener( 'resize', onWindowResize, false );
     render();
 };
-function buildMesh(lod){
-	var size = 128/lod;
+function linearInterp(first, second, x){
+	return first-(x)*(first-second);
+}
+function bilinearInterp(topLeft,topRight,bottomLeft,bottomRight,x,y){
+	return linearInterp(linearInterp(topLeft,topRight,x),linearInterp(bottomLeft,bottomRight,x),y);
+}
+
+function buildMesh(segments,lod){
+	var size = segments/lod;
     var scale = 10;
+	var height = 3;
 	var halfScale = -scale;
-    var noiseScale = 3;
+    var noiseScale = 2;
     noiseScale /= size;
     var width = scale / (size-1);
     var verticesPlane = new Float32Array(size*size*3);
@@ -173,7 +166,7 @@ function buildMesh(lod){
 			var index = (i+j*size)*3;
 			//Verts
             verticesPlane[index] = i*width*2 + halfScale ;
-            verticesPlane[index+1] = noise[i+j*size]*2;
+            verticesPlane[index+1] = noise[i+j*size]*height;
 			verticesPlane[index+2] = j*width*2 + halfScale;
 			//Offsets
 			offsetBuffer[index] = 0;
