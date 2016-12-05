@@ -1,4 +1,5 @@
 var highRes;
+var lowRes;
 var gl;
 var points;
 var simplex = new SimplexNoise();
@@ -25,6 +26,7 @@ window.onload = function init()
 	camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 30000);
 	camera.position.set(10,10,10);
 	
+	//Camera controls
 	controller = new THREE.FirstPersonControls(camera);
 	controller.movementSpeed = 10;
 	controller.lookSpeed = .1;
@@ -32,19 +34,21 @@ window.onload = function init()
 	
 	
 	
-	
-	uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
-	
+	//Previous uniforms for blinnphong shader
+	//uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
+	uniforms = {
+		
+	};
 	
 	mat = new THREE.ShaderMaterial({
 		uniforms: uniforms,
-		//attributes: attributes,
+		//attributes: attributes //three.js uses bufferGeometry for attributes now
 		vertexShader: phongVert,
 		fragmentShader: phongFrag,
 		uniforms: uniforms,
-		lights: true
+		//lights: true
 	});
-	mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
+	//mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
 	mat.uniforms.min = {value: 0};
 	mat.uniforms.max = {value: 0};
 	mat.needsUpdate = true;
@@ -56,17 +60,20 @@ window.onload = function init()
 	//var cube = new THREE.Mesh(cGeometry,cMaterial);
 	//scene.add(cube);
 
-    var size = 64;
+    var size = 65; //Must be power-of-two plus one
 	var lodScale = 8;
-	var lowResSize = size/lodScale;
-	highRes = buildMesh(size,1);
-	var lowRes = buildMesh(size,lodScale);
+	var lowResSize = 9; //Must be power-of-two plus one
+	
+	highRes = buildMesh(size);
+	lowRes = buildMesh(lowResSize);
 	
 	var offsets = highRes.geometry.attributes.aOffset.array;
 	var positions = highRes.geometry.attributes.position.array;
-	/*var normals = highRes.geometry.attributes.normal.array;
+	var normals = highRes.geometry.attributes.normal.array;
 	var lowNormals = lowRes.geometry.attributes.normal.array;
-	for(var i = 0; i < lowResSize; i++){
+	var lowPositions = lowRes.geometry.attributes.position.array;
+	//Copy normals from smaller mesh
+	/*for(var i = 0; i < lowResSize; i++){
 		for(var j = 0; j < lowResSize; j++){
 			var index = (i*lodScale+j*size*lodScale)*3;
 			normals[index] = lowNormals[i*3];
@@ -74,24 +81,27 @@ window.onload = function init()
 			normals[index+2] = lowNormals[i*3+2];
 		}
 	}*/
-	var sizeLimit = size;
-	for(var i = 0; i < sizeLimit; i++){
-		for(var j = 0; j < sizeLimit; j++){
-			if(i%lodScale != 0 || j%lodScale != 0){
+	var partition = size / (lodScale);
+	for(var i = 0; i < size; i++){
+		for(var j = 0; j < size; j++){
+			//if(i%lodScale != 0 || j%lodScale != 0){
 				index = (i+j*size)*3+1;
-				var partX = i / lodScale;
-				var partY = j / lodScale;
+				var partX = i / partition;
+				var partY = j / partition;
+				
 				var x = partX % 1;
 				var y = partY % 1;
-				var xTile = Math.floor(partX)*lodScale;
-				var yTile = Math.floor(partY)*lodScale;
-				xTile = Math.min(xTile,size-lodScale-1);
-				yTile = Math.min(yTile,size-lodScale-1);
-				var topLeftIndex= xTile+yTile*size;
+				var xTile = Math.floor(partX);
+				var yTile = Math.floor(partY);
+				//if(j%lodScale == 0) console.log(xTile/lodScale);
+				var topLeftIndex= xTile*lodScale+yTile*lodScale*size;
 				//Top left, topRight, bottomLeft, bottomRight, x, y
-				var interp = bilinearInterp(positions[topLeftIndex*3+1],positions[(topLeftIndex+lodScale)*3+1],positions[(topLeftIndex+size*lodScale)*3+1],positions[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
+				//var interp = bilinearInterp(positions[topLeftIndex*3+1],positions[(topLeftIndex+lodScale)*3+1],positions[(topLeftIndex+size*lodScale)*3+1],positions[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
+				var interp = bilinearInterp(lowPositions[(xTile+yTile*lowResSize)*3+1],lowPositions[(xTile+1+yTile*lowResSize)*3+1],lowPositions[(xTile+(yTile+1)*lowResSize)*3+1],lowPositions[(xTile+1+(yTile+1)*lowResSize)*3+1],x,y);
 				offsets[index] = -(interp - positions[index]);
 				positions[index] = interp;
+				
+				
 				//Normals
 				/*normals[index-1] = bilinearInterp(normals[topLeftIndex*3-1],normals[(topLeftIndex+lodScale)*3-1],normals[(topLeftIndex+size*lodScale)*3-1],normals[(topLeftIndex+size*lodScale+lodScale)*3-1],x,y);
 				normals[index] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3],normals[(topLeftIndex+size*lodScale)*3],normals[(topLeftIndex+size*lodScale+lodScale)*3],x,y);
@@ -99,7 +109,7 @@ window.onload = function init()
 				*/
 				
 				
-			}
+			//}
 		}
 	}
 	
@@ -110,7 +120,7 @@ window.onload = function init()
 	highRes.geometry.attributes.position.needsUpdate = true;
 	//highRes.geometry.attributes.normal.needsUpdate = true;
 	scene.add(highRes);
-	//scene.add(lowRes);
+	scene.add(lowRes);
 	
 	
 	
@@ -123,6 +133,7 @@ window.onload = function init()
 	directionalLight.target.position.set(0, 0, 0);
 	scene.add(directionalLight);
 
+	//GUI
 	stats = new Stats();
 	gui = new dat.GUI();
 	params = {
@@ -138,12 +149,14 @@ window.onload = function init()
 	var c2 = gui.add(params,"Min").min(0).max(100).name("Minimum Distance");
 	mat.uniforms.min.value = params.Min;
 	c2.onChange(function(v){
-		mat.uniforms.min.value = Math.min(params.Min,params.Max);
+		params.Min =  Math.min(params.Min,params.Max);;
+		mat.uniforms.min.value = params.Min;
 	});
 	var c3 = gui.add(params,"Max").min(0).max(100).name("Maximum Distance");
 	mat.uniforms.max.value = params.Max;
 	c3.onChange(function(v){
-		mat.uniforms.max.value = Math.max(params.Min,params.Max);
+		params.Max =  Math.max(params.Min,params.Max);
+		mat.uniforms.max.value = params.Max;
 	});
 	
 	container.appendChild(stats.domElement)
@@ -151,20 +164,25 @@ window.onload = function init()
 	window.addEventListener( 'resize', onWindowResize, false );
     render();
 };
+
+//Basic lerp, x should be clamped between 0 and 1
 function linearInterp(first, second, x){
 	return first-(x)*(first-second);
 }
+//Perform linear interpolation on X axis twice for top and bottom segments of quad
+//then interpolate between those values based on y
 function bilinearInterp(topLeft,topRight,bottomLeft,bottomRight,x,y){
 	return linearInterp(linearInterp(topLeft,topRight,x),linearInterp(bottomLeft,bottomRight,x),y);
 }
 
-function buildMesh(segments,lod){
-	var size = segments/lod;
+//Builds plane of number of segments, using simplex noise for height
+function buildMesh(segments){
+	var size = segments;
     var scale = 10;
 	var height = 3;
 	var halfScale = -scale;
     var noiseScale = 2;
-    noiseScale /= size;
+    noiseScale /= (size-1);
     var width = scale / (size-1);
     var verticesPlane = new Float32Array(size*size*3);
 	var offsetBuffer = new Float32Array(size*size*3);
@@ -174,7 +192,7 @@ function buildMesh(segments,lod){
     {
         for(var j = 0; j< size; j++)
         {
-			noise[i+j*size] = (simplex.generateNoise(i* noiseScale, j * noiseScale) *.5)+.5;
+			noise[i+j*size] = (simplex.generateNoise(i* noiseScale +3, j * noiseScale) *.5)+.5;
 			var index = (i+j*size)*3;
 			//Verts
             verticesPlane[index] = i*width*2 + halfScale ;
@@ -201,10 +219,11 @@ function buildMesh(segments,lod){
     }
 	var geometry = new THREE.BufferGeometry();
 	geometry.addAttribute( 'position', new THREE.BufferAttribute(verticesPlane, 3 ) );
+	//aOffset will be used by shader to control vertex movement
 	geometry.addAttribute( 'aOffset', new THREE.BufferAttribute(offsetBuffer, 3 ) );
 	geometry.setIndex( new THREE.BufferAttribute( new Uint32Array( indices ), 1 ) );
 	geometry.computeVertexNormals();
-	var material = new THREE.MeshPhongMaterial({color: 0x00ffff, wireframe: true});
+	//var material = new THREE.MeshPhongMaterial({color: 0x00ffff, wireframe: true});
 	var mesh = new THREE.Mesh( geometry, mat );
 	return mesh;
 }
@@ -219,10 +238,13 @@ function update(){
 	deltaTime = clock.getDelta();
 	controller.update(deltaTime);
 	stats.update();
+	//Swap meshes if camera is close enough
+	var swapIn = ( camera.position.distanceTo(new THREE.Vector3(0,0,0)) < Math.max(params.Max,15));//Plane is about 10 units across
+	highRes.visible = swapIn;
+	lowRes.visible = !swapIn;
+	
 }
 function render() {
-    //gl.clear( gl.COLOR_BUFFER_BIT );
-    //gl.drawElements(gl.LINES, indices.length, gl.UNSIGNED_SHORT, 0);
 	update();
 	renderer.render(scene,camera);
     requestAnimationFrame(render);
