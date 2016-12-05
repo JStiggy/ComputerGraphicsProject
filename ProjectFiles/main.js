@@ -110,7 +110,7 @@ window.onload = function init()
 	highRes.geometry.attributes.position.needsUpdate = true;
 	//highRes.geometry.attributes.normal.needsUpdate = true;
 	scene.add(highRes);
-	scene.add(lowRes);
+	//scene.add(lowRes);
 	
 	
 	
@@ -126,12 +126,24 @@ window.onload = function init()
 	stats = new Stats();
 	gui = new dat.GUI();
 	params = {
-		Wireframe: true
+		Wireframe: true,
+		Min: 20,
+		Max: 40
 	};
 	var c1 = gui.add(params,"Wireframe");
-	mat.wireframe = true;
+	mat.wireframe = params.Wireframe;
 	c1.onChange(function(v){
 		mat.wireframe = v;
+	});
+	var c2 = gui.add(params,"Min").min(0).max(100).name("Minimum Distance");
+	mat.uniforms.min.value = params.Min;
+	c2.onChange(function(v){
+		mat.uniforms.min.value = Math.min(params.Min,params.Max);
+	});
+	var c3 = gui.add(params,"Max").min(0).max(100).name("Maximum Distance");
+	mat.uniforms.max.value = params.Max;
+	c3.onChange(function(v){
+		mat.uniforms.max.value = Math.max(params.Min,params.Max);
 	});
 	
 	container.appendChild(stats.domElement)
