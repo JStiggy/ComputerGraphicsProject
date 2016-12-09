@@ -3,7 +3,8 @@ var phongVert = `
   uniform float max;
   attribute vec3 aOffset;
   varying vec3 vColor;
-  void main() { 
+  void main() {
+  //Distance of vertices to camera
   float distance = distance(cameraPosition , position);
   float ratio = (distance - min) / (max - min);
   ratio = clamp(ratio,0.0,1.0);
@@ -12,5 +13,6 @@ var phongVert = `
 
   vec4 mvPosition = modelViewMatrix * vec4( position + offset, 1.0 );
   gl_Position = projectionMatrix * mvPosition;
+  //Send colors to fragment shader based on height in the world
   vColor = vec3(0,position.y/5.0,position.y/5.0);
   } `;

@@ -20,8 +20,9 @@ window.onload = function init()
 	clock = new THREE.Clock();
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio( window.devicePixelRatio );
-	//document.body.appendChild(renderer.domElement);
+
 	container.appendChild(renderer.domElement);
+	//Add camera
 	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 30000);
 	camera.position.set(10,10,10);
@@ -36,33 +37,37 @@ window.onload = function init()
 	
 	//Previous uniforms for blinnphong shader
 	//uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.phong.uniforms);
+	
 	uniforms = {
 		
 	};
 	
 	mat = new THREE.ShaderMaterial({
 		uniforms: uniforms,
-		//attributes: attributes //three.js uses bufferGeometry for attributes now
+		//three.js uses bufferGeometry and attributes has been deprecated
+		//attributes: attributes
 		vertexShader: phongVert,
 		fragmentShader: phongFrag,
 		uniforms: uniforms,
+		//Phong shader would have this lights uniform enabled
 		//lights: true
 	});
+	//Phong shader normally allows diffuse to be set
 	//mat.uniforms.diffuse.value = new THREE.Color(0x00ffff);
 	mat.uniforms.min = {value: 0};
 	mat.uniforms.max = {value: 0};
 	mat.needsUpdate = true;
 	
-	//Test cube
-	//var cGeometry = new THREE.CubeGeometry(2,2,2);
-	//var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
-	//cGeometry.computeVertexNormals();
-	//var cube = new THREE.Mesh(cGeometry,cMaterial);
-	//scene.add(cube);
+	//Test cube for reference in the world
+	/*var cGeometry = new THREE.CubeGeometry(2,2,2);
+	var cMaterial = new THREE.MeshPhongMaterial({color: 0x00ffff});
+	cGeometry.computeVertexNormals();
+	var cube = new THREE.Mesh(cGeometry,cMaterial);
+	scene.add(cube);*/
 
     var size = 65; //Must be power-of-two plus one
-	var lodScale = 8;
-	var lowResSize = 9; //Must be power-of-two plus one
+	var lodScale = 8; //Must be power of two
+	var lowResSize = 9; //Must be ((size-1)/lodScale)+1
 	
 	highRes = buildMesh(size);
 	lowRes = buildMesh(lowResSize);
@@ -73,6 +78,7 @@ window.onload = function init()
 	var lowNormals = lowRes.geometry.attributes.normal.array;
 	var lowPositions = lowRes.geometry.attributes.position.array;
 	//Copy normals from smaller mesh
+	//unused as three.js already creates normals for meshes.
 	/*for(var i = 0; i < lowResSize; i++){
 		for(var j = 0; j < lowResSize; j++){
 			var index = (i*lodScale+j*size*lodScale)*3;
@@ -81,35 +87,35 @@ window.onload = function init()
 			normals[index+2] = lowNormals[i*3+2];
 		}
 	}*/
+	
+	//Loop through vertices of high resolution mesh and offset them to match the shape of the lower resolution mesh
 	var partition = size / (lodScale);
 	for(var i = 0; i < size; i++){
 		for(var j = 0; j < size; j++){
-			//if(i%lodScale != 0 || j%lodScale != 0){
-				index = (i+j*size)*3+1;
-				var partX = i / partition;
-				var partY = j / partition;
-				
-				var x = partX % 1;
-				var y = partY % 1;
-				var xTile = Math.floor(partX);
-				var yTile = Math.floor(partY);
-				//if(j%lodScale == 0) console.log(xTile/lodScale);
-				var topLeftIndex= xTile*lodScale+yTile*lodScale*size;
-				//Top left, topRight, bottomLeft, bottomRight, x, y
-				//var interp = bilinearInterp(positions[topLeftIndex*3+1],positions[(topLeftIndex+lodScale)*3+1],positions[(topLeftIndex+size*lodScale)*3+1],positions[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
-				var interp = bilinearInterp(lowPositions[(xTile+yTile*lowResSize)*3+1],lowPositions[(xTile+1+yTile*lowResSize)*3+1],lowPositions[(xTile+(yTile+1)*lowResSize)*3+1],lowPositions[(xTile+1+(yTile+1)*lowResSize)*3+1],x,y);
-				offsets[index] = -(interp - positions[index]);
-				positions[index] = interp;
-				
-				
-				//Normals
-				/*normals[index-1] = bilinearInterp(normals[topLeftIndex*3-1],normals[(topLeftIndex+lodScale)*3-1],normals[(topLeftIndex+size*lodScale)*3-1],normals[(topLeftIndex+size*lodScale+lodScale)*3-1],x,y);
-				normals[index] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3],normals[(topLeftIndex+size*lodScale)*3],normals[(topLeftIndex+size*lodScale+lodScale)*3],x,y);
-				normals[index+1] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3+1],normals[(topLeftIndex+size*lodScale)*3+1],normals[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
-				*/
-				
-				
-			//}
+			index = (i+j*size)*3+1;
+			var partX = i / partition;
+			var partY = j / partition;
+			
+			var x = partX % 1;
+			var y = partY % 1;
+			var xTile = Math.floor(partX);
+			var yTile = Math.floor(partY);
+			//if(j%lodScale == 0) console.log(xTile/lodScale);
+			var topLeftIndex= xTile*lodScale+yTile*lodScale*size;
+			//Top left, topRight, bottomLeft, bottomRight, x, y
+			var interp = bilinearInterp(lowPositions[(xTile+yTile*lowResSize)*3+1],lowPositions[(xTile+1+yTile*lowResSize)*3+1],lowPositions[(xTile+(yTile+1)*lowResSize)*3+1],lowPositions[(xTile+1+(yTile+1)*lowResSize)*3+1],x,y);
+			//Interpolates verts between those that are shared with the lower mesh
+			//Sets vertex attributes to the difference of these values, so the shader can smoothly bring them back to their highres position
+			offsets[index] = -(interp - positions[index]);
+			positions[index] = interp;
+			
+			
+			//This would change the normals of the high resolution mesh to better match those of the lower resolution one
+			//As there seems to be built in mesh normalization in three.js this method did not seem to work
+			/*normals[index-1] = bilinearInterp(normals[topLeftIndex*3-1],normals[(topLeftIndex+lodScale)*3-1],normals[(topLeftIndex+size*lodScale)*3-1],normals[(topLeftIndex+size*lodScale+lodScale)*3-1],x,y);
+			normals[index] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3],normals[(topLeftIndex+size*lodScale)*3],normals[(topLeftIndex+size*lodScale+lodScale)*3],x,y);
+			normals[index+1] = bilinearInterp(normals[topLeftIndex*3+1],normals[(topLeftIndex+lodScale)*3+1],normals[(topLeftIndex+size*lodScale)*3+1],normals[(topLeftIndex+size*lodScale+lodScale)*3+1],x,y);
+			*/
 		}
 	}
 	
@@ -125,7 +131,7 @@ window.onload = function init()
 	
 	
 	
-	
+	//Directional lighting and ambient light for back faces of objects that use the built-in blinn-phong shader
 	var ambientLight = new THREE.AmbientLight(0x222222);
 	scene.add(ambientLight);
 	var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
@@ -188,6 +194,8 @@ function buildMesh(segments){
 	var offsetBuffer = new Float32Array(size*size*3);
 	var noise = [];
 	var indices = [];
+	//Builds grid of variable sizes based on the same noise function,
+	//different meshes with more or less vertices will all resemble the same shape
     for(var i = 0; i < size; i++)
     {
         for(var j = 0; j< size; j++)
@@ -204,7 +212,7 @@ function buildMesh(segments){
 			offsetBuffer[index+2] = 0;
 			
             
-		    
+		    //Creates two triangles for each "quad" of the plane
             if(i> 0 && j> 0)
             {
                 indices.push(i-1 + (j-1) * size);
@@ -234,6 +242,7 @@ function onWindowResize( event ) {
 }
 
 var deltaTime;
+//update called once before each frame is rendered
 function update(){
 	deltaTime = clock.getDelta();
 	controller.update(deltaTime);
