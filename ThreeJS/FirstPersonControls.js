@@ -73,7 +73,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 		}
 
 	};
-
+/*
 	this.onMouseDown = function ( event ) {
 		if(event.button === 2)
 		{
@@ -104,7 +104,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 		}
 
 	};
-
+*/
 	this.onKeyDown = function ( event ) {
 
 		//event.preventDefault();
